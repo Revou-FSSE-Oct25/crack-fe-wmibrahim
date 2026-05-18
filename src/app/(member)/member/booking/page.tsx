@@ -54,6 +54,17 @@ export default function BookingPage() {
     return new Date() < oneHourBefore
   }
 
+  function isSlotBookable(slot: Slot): boolean {
+  const today = new Date().toISOString().split('T')[0]
+  if (date !== today) return true
+
+  const [startHours, startMinutes] = slot.start_time.split(':').map(Number)
+  const slotStart = new Date()
+  slotStart.setHours(startHours, startMinutes, 0, 0)
+
+  return new Date() < slotStart
+}
+
   async function handleBook(slotId: string) {
     setProcessingId(slotId)
     setMessage(null)
@@ -160,30 +171,32 @@ export default function BookingPage() {
 
                 <div className="flex flex-col gap-2 items-end">
                   {isBooked ? (
-                    cancellable ? (
-                      <button
-                        onClick={() => handleCancel(activeBooking.id)}
-                        disabled={processingId === activeBooking.id}
-                        className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-sm rounded-lg transition"
-                      >
-                        {processingId === activeBooking.id ? '...' : 'Batalkan'}
-                      </button>
-                    ) : (
-                      <span className="text-xs text-gray-600 text-right">Tidak bisa<br/>dibatalkan</span>
-                    )
-                  ) : (
-                    <button
-                      onClick={() => handleBook(slot.id)}
-                      disabled={slot.available === 0 || processingId === slot.id}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                        slot.available === 0
-                          ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                          : 'bg-orange-500 hover:bg-orange-600 text-white'
-                      }`}
-                    >
-                      {processingId === slot.id ? '...' : slot.available === 0 ? 'Penuh' : 'Booking'}
-                    </button>
-                  )}
+  cancellable ? (
+    <button
+      onClick={() => handleCancel(activeBooking.id)}
+      disabled={processingId === activeBooking.id}
+      className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-sm rounded-lg transition"
+    >
+      {processingId === activeBooking.id ? '...' : 'Batalkan'}
+    </button>
+  ) : (
+    <span className="text-xs text-gray-600 text-right">Tidak bisa<br/>dibatalkan</span>
+  )
+) : !isSlotBookable(slot) ? (
+  <span className="text-xs text-gray-600 text-right">Sudah<br/>berjalan</span>
+) : (
+  <button
+    onClick={() => handleBook(slot.id)}
+    disabled={slot.available === 0 || processingId === slot.id}
+    className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+      slot.available === 0
+        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+        : 'bg-orange-500 hover:bg-orange-600 text-white'
+    }`}
+  >
+    {processingId === slot.id ? '...' : slot.available === 0 ? 'Penuh' : 'Booking'}
+  </button>
+)}
                 </div>
               </div>
             )
