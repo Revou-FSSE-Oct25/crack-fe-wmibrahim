@@ -16,12 +16,10 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-  
-
-  const res = await apiFetch('/api/auth', {
-  method: 'POST',
-  body: JSON.stringify({ action: 'login', email, password }),
-})
+    const res = await apiFetch('/api/auth', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'login', email, password }),
+    })
 
     const data = await res.json()
     setLoading(false)
@@ -40,7 +38,16 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-gray-900 rounded-2xl p-8 border border-gray-800">
+      <div className="w-full max-w-md bg-gray-900 rounded-2xl p-8 border border-gray-800 relative">
+
+        {/* Tombol X ke landing page */}
+        <Link
+          href="/"
+          className="absolute top-4 right-4 text-gray-500 hover:text-white transition text-xl leading-none"
+        >
+          ✕
+        </Link>
+
         <h1 className="text-2xl font-bold text-white mb-1">Selamat datang</h1>
         <p className="text-gray-400 text-sm mb-6">Masuk ke akun GymBook kamu</p>
 
