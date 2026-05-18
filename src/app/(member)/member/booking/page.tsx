@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiFetch } from '@/lib/api'
 
 interface Slot {
   id: string
@@ -11,37 +12,59 @@ interface Slot {
   available: number
 }
 
+interface Booking {
+  id: string
+  slot_id: string
+  date: string
+  status: string
+  slots: { start_time: string; end_time: string }
+}
+
 export default function BookingPage() {
   const [slots, setSlots] = useState<Slot[]>([])
+  const [bookings, setBookings] = useState<Booking[]>([])
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [loading, setLoading] = useState(false)
-  const [bookingId, setBookingId] = useState<string | null>(null)
+  const [processingId, setProcessingId] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  useEffect(() => {
-    fetchSlots()
-  }, [date])
+  useEffect(() => { fetchData() }, [date])
 
-  async function fetchSlots() {
+  async function fetchData() {
     setLoading(true)
-    const res = await fetch(`/api/slots?date=${date}`)
-    const data = await res.json()
-    setSlots(data.slots || [])
+    const [slotsRes, bookingsRes] = await Promise.all([
+      apiFetch(`/api/slots?date=${date}`),
+      apiFetch(`/api/bookings?date=${date}`),
+    ])
+    const slotsData = await slotsRes.json()
+    const bookingsData = await bookingsRes.json()
+    setSlots(slotsData.slots || [])
+    setBookings(bookingsData.bookings?.filter((b: Booking) => b.status === 'active') || [])
     setLoading(false)
   }
 
+  function getActiveBooking(slotId: string): Booking | undefined {
+    return bookings.find(b => b.slot_id === slotId)
+  }
+
+  function canCancel(slot: Slot): boolean {
+    const [hours, minutes] = slot.start_time.split(':').map(Number)
+    const sessionStart = new Date(`${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`)
+    const oneHourBefore = new Date(sessionStart.getTime() - 60 * 60 * 1000)
+    return new Date() < oneHourBefore
+  }
+
   async function handleBook(slotId: string) {
-    setBookingId(slotId)
+    setProcessingId(slotId)
     setMessage(null)
 
-    const res = await fetch('/api/bookings', {
+    const res = await apiFetch('/api/bookings', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slot_id: slotId, date }),
     })
 
     const data = await res.json()
-    setBookingId(null)
+    setProcessingId(null)
 
     if (!res.ok) {
       setMessage({ type: 'error', text: data.error })
@@ -49,12 +72,29 @@ export default function BookingPage() {
     }
 
     setMessage({ type: 'success', text: 'Booking berhasil! Sampai jumpa di gym 💪' })
-    fetchSlots()
+    fetchData()
   }
 
-  function formatTime(time: string) {
-    return time.slice(0, 5)
+  async function handleCancel(bookingId: string) {
+    if (!confirm('Batalkan booking ini?')) return
+
+    setProcessingId(bookingId)
+    setMessage(null)
+
+    const res = await apiFetch(`/api/bookings/${bookingId}`, { method: 'PATCH' })
+    const data = await res.json()
+    setProcessingId(null)
+
+    if (!res.ok) {
+      setMessage({ type: 'error', text: data.error })
+      return
+    }
+
+    setMessage({ type: 'success', text: 'Booking berhasil dibatalkan' })
+    fetchData()
   }
+
+  function formatTime(time: string) { return time.slice(0, 5) }
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -63,7 +103,6 @@ export default function BookingPage() {
       <h2 className="text-2xl font-bold mb-1">Booking Sesi Latihan</h2>
       <p className="text-gray-400 text-sm mb-6">Pilih tanggal dan slot waktu yang tersedia</p>
 
-      {/* Date picker */}
       <div className="mb-6">
         <label className="text-sm text-gray-400 mb-1 block">Tanggal</label>
         <input
@@ -75,7 +114,6 @@ export default function BookingPage() {
         />
       </div>
 
-      {/* Message */}
       {message && (
         <div className={`mb-6 text-sm rounded-lg px-4 py-3 border ${
           message.type === 'success'
@@ -86,44 +124,70 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Slots */}
       {loading ? (
         <p className="text-gray-400 text-sm">Memuat slot...</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {slots.map(slot => (
-            <div
-              key={slot.id}
-              className="bg-gray-900 border border-gray-800 rounded-xl p-5 flex items-center justify-between"
-            >
-              <div>
-                <p className="font-semibold text-white">
-                  {formatTime(slot.start_time)} – {formatTime(slot.end_time)}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {slot.available} / {slot.quota} tempat tersedia
-                </p>
-                <div className="mt-2 w-32 bg-gray-700 rounded-full h-1.5">
-                  <div
-                    className="bg-orange-500 h-1.5 rounded-full"
-                    style={{ width: `${(slot.booked / slot.quota) * 100}%` }}
-                  />
-                </div>
-              </div>
+          {slots.map(slot => {
+            const activeBooking = getActiveBooking(slot.id)
+            const isBooked = !!activeBooking
+            const cancellable = isBooked && canCancel(slot)
 
-              <button
-                onClick={() => handleBook(slot.id)}
-                disabled={slot.available === 0 || bookingId === slot.id}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                  slot.available === 0
-                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                    : 'bg-orange-500 hover:bg-orange-600 text-white'
+            return (
+              <div
+                key={slot.id}
+                className={`bg-gray-900 border rounded-xl p-5 flex items-center justify-between ${
+                  isBooked ? 'border-orange-500/40' : 'border-gray-800'
                 }`}
               >
-                {bookingId === slot.id ? '...' : slot.available === 0 ? 'Penuh' : 'Booking'}
-              </button>
-            </div>
-          ))}
+                <div>
+                  <p className="font-semibold text-white">
+                    {formatTime(slot.start_time)} – {formatTime(slot.end_time)}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {slot.available} / {slot.quota} tempat tersedia
+                  </p>
+                  <div className="mt-2 w-32 bg-gray-700 rounded-full h-1.5">
+                    <div
+                      className="bg-orange-500 h-1.5 rounded-full"
+                      style={{ width: `${(slot.booked / slot.quota) * 100}%` }}
+                    />
+                  </div>
+                  {isBooked && (
+                    <p className="text-xs text-orange-400 mt-2 font-medium">✓ Sudah dibooking</p>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 items-end">
+                  {isBooked ? (
+                    cancellable ? (
+                      <button
+                        onClick={() => handleCancel(activeBooking.id)}
+                        disabled={processingId === activeBooking.id}
+                        className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-sm rounded-lg transition"
+                      >
+                        {processingId === activeBooking.id ? '...' : 'Batalkan'}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-600 text-right">Tidak bisa<br/>dibatalkan</span>
+                    )
+                  ) : (
+                    <button
+                      onClick={() => handleBook(slot.id)}
+                      disabled={slot.available === 0 || processingId === slot.id}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                        slot.available === 0
+                          ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                          : 'bg-orange-500 hover:bg-orange-600 text-white'
+                      }`}
+                    >
+                      {processingId === slot.id ? '...' : slot.available === 0 ? 'Penuh' : 'Booking'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

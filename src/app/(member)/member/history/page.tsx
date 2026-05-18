@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiFetch } from '@/lib/api'
 
 interface Booking {
   id: string
@@ -15,7 +16,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/bookings')
+    apiFetch('/api/bookings')
       .then(res => res.json())
       .then(data => {
         setBookings(data.bookings || [])
@@ -23,9 +24,7 @@ export default function HistoryPage() {
       })
   }, [])
 
-  function formatTime(time: string) {
-    return time.slice(0, 5)
-  }
+  function formatTime(time: string) { return time.slice(0, 5) }
 
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString('id-ID', {

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { apiFetch } from '@/lib/api'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -15,11 +16,12 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'login', email, password }),
-    })
+  
+
+  const res = await apiFetch('/api/auth', {
+  method: 'POST',
+  body: JSON.stringify({ action: 'login', email, password }),
+})
 
     const data = await res.json()
     setLoading(false)
