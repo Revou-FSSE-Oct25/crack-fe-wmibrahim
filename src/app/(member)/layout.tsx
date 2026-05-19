@@ -33,7 +33,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
       'Content-Type': 'application/json'
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL
 
     fetch(`${baseUrl}/api/auth`, { headers })
       .then(res => {
