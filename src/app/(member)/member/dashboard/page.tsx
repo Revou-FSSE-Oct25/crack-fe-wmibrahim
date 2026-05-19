@@ -33,8 +33,8 @@ export default function MemberDashboardPage() {
 
       try {
         const [authRes, bookingRes] = await Promise.all([
-          fetch('http://localhost:3001/api/auth', { headers }),
-          fetch('http://localhost:3001/api/bookings', { headers }),
+          fetch('${API_URL}/api/auth', { headers }),
+          fetch('${API_URL}/api/bookings', { headers }),
         ])
         
         const authData = await authRes.json()

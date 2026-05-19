@@ -22,7 +22,7 @@ export default function AdminDashboardPage() {
         'Content-Type': 'application/json'
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL
 
       try {
         // Menembak data dashboard admin ke port 3001 secara aman
