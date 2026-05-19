@@ -10,7 +10,8 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function handleLogin() {
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault() // Mencegah refresh halaman saat menekan Enter
     setLoading(true)
     setError('')
 
@@ -30,21 +31,14 @@ export default function LoginPage() {
 
       if (data.session) {
         const { access_token, refresh_token, expires_in } = data.session
-
-        // Set cookie auth agar dibaca sinkron oleh server component
         document.cookie = `sb-access-token=${access_token}; path=/; max-age=${expires_in}; SameSite=Lax;`
-        
         if (refresh_token) {
           document.cookie = `sb-refresh-token=${refresh_token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax;`
         }
-
-        // Simpan token utama untuk Authorization Header apiFetch
         localStorage.setItem('sb-access-token', access_token)
       }
 
       setLoading(false)
-
-      // SOLUSI FINAL: Menggunakan window.location untuk memaksa pengalihan halaman secara bersih
       if (data.role === 'admin') {
         window.location.href = '/admin/dashboard'
       } else {
@@ -61,12 +55,7 @@ export default function LoginPage() {
     <main className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-gray-900 rounded-2xl p-8 border border-gray-800 relative">
 
-        <Link
-          href="/"
-          className="absolute top-4 right-4 text-gray-500 hover:text-white transition text-xl leading-none"
-        >
-          ✕
-        </Link>
+        <Link href="/" className="absolute top-4 right-4 text-gray-500 hover:text-white transition text-xl leading-none">✕</Link>
 
         <h1 className="text-2xl font-bold text-white mb-1">Selamat datang</h1>
         <p className="text-gray-400 text-sm mb-6">Masuk ke akun GymBook kamu</p>
@@ -77,7 +66,8 @@ export default function LoginPage() {
           </div>
         )}
 
-        <div className="space-y-4">
+        {/* Form ini memungkinkan tombol Enter untuk men-trigger Login */}
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="text-sm text-gray-400 mb-1 block">Email</label>
             <input
@@ -86,6 +76,7 @@ export default function LoginPage() {
               onChange={e => setEmail(e.target.value)}
               placeholder="email@gmail.com"
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-orange-500"
+              required
             />
           </div>
           <div>
@@ -96,17 +87,18 @@ export default function LoginPage() {
               onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-orange-500"
+              required
             />
           </div>
 
           <button
-            onClick={handleLogin}
+            type="submit"
             disabled={loading}
             className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition"
           >
-            {loading ? 'Memproses...' : 'Masuk'}
+            {loading ? 'Memproses...' : 'Login'}
           </button>
-        </div>
+        </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Belum punya akun?{' '}

@@ -12,6 +12,10 @@ export async function apiFetch(path: string, options?: RequestInit) {
     }
   }
 
+  // === BARIS DEBUGGING (CARA 1) ===
+  console.log("Token yang didapat:", token);
+  // ================================
+
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     credentials: 'include', // Tetap dipertahankan untuk jaga-jaga
