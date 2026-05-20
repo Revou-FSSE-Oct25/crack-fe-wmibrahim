@@ -29,27 +29,35 @@ export default function RegisterPage() {
 
     setLoading(true)
 
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'register',
-        email: form.email,
-        password: form.password,
-        full_name: form.full_name,
-        phone: form.phone,
-      }),
-    })
+    // Mengambil URL Backend dari environment variables
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-    const data = await res.json()
-    setLoading(false)
+    try {
+      const res = await fetch(`${API_URL}/api/auth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'register',
+          email: form.email,
+          password: form.password,
+          full_name: form.full_name,
+          phone: form.phone,
+        }),
+      })
 
-    if (!res.ok) {
-      setError(data.error || 'Registrasi gagal')
-      return
+      const data = await res.json()
+      setLoading(false)
+
+      if (!res.ok) {
+        setError(data.error || 'Registrasi gagal')
+        return
+      }
+
+      router.push('/login?registered=true')
+    } catch (err) {
+      setLoading(false)
+      setError('Terjadi kesalahan koneksi ke server.')
     }
-
-    router.push('/login?registered=true')
   }
 
   return (
